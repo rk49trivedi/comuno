@@ -1,17 +1,22 @@
 // server.js
 const express = require('express');
 const bodyParser = require('body-parser');
-const db = require('./db');  // Ensure db.js is correct and working
+const db = require('./db');  // Make sure db.js exists with your MySQL config
 
 const app = express();
-const port = process.env.PORT || 3000;  // ✅ Dynamic port
+const port = 3000;
 
+// Middleware to parse JSON request bodies
 app.use(bodyParser.json());
 
+// POST route for incomingCall, outgoingCall, callRecording
 app.post('/api/:type', (req, res) => {
     const { type } = req.params;
+
+    // Allowed event types
     const validTypes = ['incomingCall', 'outgoingCall', 'callRecording'];
 
+    // Validate type param
     if (!validTypes.includes(type)) {
         return res.status(400).json({
             status: 'error',
@@ -20,8 +25,9 @@ app.post('/api/:type', (req, res) => {
     }
 
     const data = req.body;
-    const query = 'INSERT INTO call_logs (type, data) VALUES (?, ?)';
 
+    // Insert data into MySQL
+    const query = 'INSERT INTO call_logs (type, data) VALUES (?, ?)';
     db.query(query, [type, JSON.stringify(data)], (err, result) => {
         if (err) {
             console.error('Database Insert Error:', err.message);
@@ -31,6 +37,7 @@ app.post('/api/:type', (req, res) => {
             });
         }
 
+        // Success response
         res.json({
             status: 'success',
             message: `${type} event stored successfully`,
@@ -39,6 +46,15 @@ app.post('/api/:type', (req, res) => {
     });
 });
 
+// Start server
 app.listen(port, () => {
     console.log(`🚀 Server running at http://localhost:${port}`);
 });
+
+
+// CREATE TABLE call_logs (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     type VARCHAR(50),
+//     data JSON,
+//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+// );
