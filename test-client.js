@@ -4,28 +4,20 @@ const db = require('./db');
 
 const socket = io("http://31.97.206.244:3000");
 
-// Agent configuration - Dynamic phone number from environment or command line
-const agentPhoneNumber = process.env.AGENT_PHONE_NUMBER || process.argv[2];
-
-if (!agentPhoneNumber) {
-    console.error("❌ Phone number is required!");
-    console.log("Usage: node test-client.js +919876543210");
-    console.log("Or set environment variable: AGENT_PHONE_NUMBER=+919876543210");
-    process.exit(1);
-}
-
+// Production configuration - This is a database service that processes ALL call data
+// It doesn't need a specific phone number - it handles data for all agents
 const agentConfig = {
-    agentId: `call-logger-${agentPhoneNumber.replace(/[^0-9]/g, '')}`, // Dynamic agent ID
-    agentNumber: agentPhoneNumber, // Dynamic phone number
-    agentName: `Call Logger - ${agentPhoneNumber}`,
-    agentType: "call_processor"
+    agentId: `database-service-${Date.now()}`, // Unique service ID
+    agentNumber: "DATABASE_SERVICE", // Special identifier for database service
+    agentName: "Database Call Logger Service",
+    agentType: "database_service"
 };
 
 socket.on("connect", () => {
     console.log("✅ Connected to socket server");
-    console.log(`📞 Registering agent with phone number: ${agentConfig.agentNumber}`);
+    console.log(`🗄️  Registering as database service: ${agentConfig.agentName}`);
 
-    // Register this client as an agent
+    // Register this client as a database service
     socket.emit('registerAgent', agentConfig);
 });
 
@@ -50,69 +42,57 @@ socket.on("agentDisconnected", (data) => {
 });
 
 socket.on("incomingCall", (data) => {
-    
-    const  type  = 'incomingCall';
+    const type = 'incomingCall';
+    const targetPhone = data.targetPhoneNumber || 'broadcast';
+
+    console.log(`📞 Incoming call data received for ${targetPhone}:`, data);
+
     // Insert data into MySQL
-    const query = 'INSERT INTO call_logs (type, data) VALUES (?, ?)';
-    db.query(query, [type, JSON.stringify(data)], (err, result) => {
+    const query = 'INSERT INTO call_logs (type, target_phone, data) VALUES (?, ?, ?)';
+    db.query(query, [type, targetPhone, JSON.stringify(data)], (err, result) => {
         if (err) {
             console.error('Database Insert Error:', err.message);
-            return res.status(500).json({
-                status: 'error',
-                message: 'Database error'+ err.message
-            });
+            return;
         }
 
-        
-        console.log("Data stored");
-        
+        console.log(`💾 Data stored for ${targetPhone} - ID: ${result.insertId}`);
     });
-    
-    console.log("📞 Incoming call data received:", data);
 });
 
 socket.on("outgoingCall", (data) => {
-    
-    const  type  = 'outgoingCall';
+    const type = 'outgoingCall';
+    const targetPhone = data.targetPhoneNumber || 'broadcast';
+
+    console.log(`📞 Outgoing call data received for ${targetPhone}:`, data);
+
     // Insert data into MySQL
-    const query = 'INSERT INTO call_logs (type, data) VALUES (?, ?)';
-    db.query(query, [type, JSON.stringify(data)], (err, result) => {
+    const query = 'INSERT INTO call_logs (type, target_phone, data) VALUES (?, ?, ?)';
+    db.query(query, [type, targetPhone, JSON.stringify(data)], (err, result) => {
         if (err) {
             console.error('Database Insert Error:', err.message);
-            return res.status(500).json({
-                status: 'error',
-                message: 'Database error'+ err.message
-            });
+            return;
         }
 
-        
-        console.log("Data stored");
-        
+        console.log(`💾 Data stored for ${targetPhone} - ID: ${result.insertId}`);
     });
-    
-    console.log("📞  outgoingCall data received:", data);
 });
 
 socket.on("callRecording", (data) => {
-    
-    const  type  = 'callRecording';
+    const type = 'callRecording';
+    const targetPhone = data.targetPhoneNumber || 'broadcast';
+
+    console.log(`🎵 Call recording data received for ${targetPhone}:`, data);
+
     // Insert data into MySQL
-    const query = 'INSERT INTO call_logs (type, data) VALUES (?, ?)';
-    db.query(query, [type, JSON.stringify(data)], (err, result) => {
+    const query = 'INSERT INTO call_logs (type, target_phone, data) VALUES (?, ?, ?)';
+    db.query(query, [type, targetPhone, JSON.stringify(data)], (err, result) => {
         if (err) {
             console.error('Database Insert Error:', err.message);
-            return res.status(500).json({
-                status: 'error',
-                message: 'Database error'+ err.message
-            });
+            return;
         }
 
-        
-        console.log("Data stored");
-        
+        console.log(`💾 Data stored for ${targetPhone} - ID: ${result.insertId}`);
     });
-    
-    console.log("📞  callRecording data received:", data);
 });
 
 socket.on("disconnect", () => {

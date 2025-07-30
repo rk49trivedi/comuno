@@ -41,8 +41,8 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Check if agent number is already registered
-        if (agentNumberToId.has(agentNumber)) {
+        // Special handling for database services - they can have duplicate "phone numbers"
+        if (agentNumber !== "DATABASE_SERVICE" && agentNumberToId.has(agentNumber)) {
             socket.emit('registrationError', { message: `Agent number ${agentNumber} is already registered` });
             return;
         }
@@ -59,7 +59,12 @@ io.on('connection', (socket) => {
         };
 
         connectedAgents.set(agentId, agentInfo);
-        agentNumberToId.set(agentNumber, agentId);
+
+        // Only map phone numbers for real phone numbers, not database services
+        if (agentNumber !== "DATABASE_SERVICE") {
+            agentNumberToId.set(agentNumber, agentId);
+        }
+
         socket.agentId = agentId;
         socket.agentNumber = agentNumber;
 
@@ -85,7 +90,11 @@ io.on('connection', (socket) => {
         if (socket.agentId && socket.agentNumber) {
             console.log(`❌ Agent disconnected: ${socket.agentId} (${socket.agentNumber})`);
             connectedAgents.delete(socket.agentId);
-            agentNumberToId.delete(socket.agentNumber);
+
+            // Only remove from phone number mapping if it's not a database service
+            if (socket.agentNumber !== "DATABASE_SERVICE") {
+                agentNumberToId.delete(socket.agentNumber);
+            }
 
             // Notify other agents about disconnection
             socket.broadcast.emit('agentDisconnected', {
@@ -146,6 +155,16 @@ app.post('/api/:type/number/:agentNumber', (req, res) => {
 
     const agentInfo = connectedAgents.get(agentId);
     agentInfo.socket.emit(type, data);
+
+    // Also send to all database services for logging
+    connectedAgents.forEach((dbAgentInfo, dbAgentId) => {
+        if (dbAgentInfo.agentType === 'database_service') {
+            dbAgentInfo.socket.emit(type, {
+                ...data,
+                targetPhoneNumber: agentNumber // Add context for database service
+            });
+        }
+    });
 
     return res.json({
         status: 'success',

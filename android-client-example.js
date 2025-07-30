@@ -2,26 +2,20 @@
 const { io } = require("socket.io-client");
 
 // This simulates how Android app should connect
-// Android developer should replace this with actual user's phone number from their app
+// In real Android app, this would come from user input or device phone number
 
-// Get phone number from command line (Android app will get this from user input)
-const userPhoneNumber = process.argv[2];
-
-if (!userPhoneNumber) {
-    console.error("❌ User phone number is required!");
-    console.log("Usage: node android-client-example.js +919876543210");
-    console.log("This simulates Android app connecting with user's phone number");
-    process.exit(1);
+// Generate a random test phone number to simulate Android user
+function generateTestUserPhoneNumber() {
+    const countryCode = '+91';
+    const number = Math.floor(Math.random() * 9000000000) + 1000000000; // 10 digit number
+    return countryCode + number;
 }
 
-// Validate phone number format
-if (!userPhoneNumber.match(/^\+[1-9]\d{1,14}$/)) {
-    console.error("❌ Invalid phone number format! Use international format like +919876543210");
-    process.exit(1);
-}
+const userPhoneNumber = generateTestUserPhoneNumber();
 
 console.log("📱 Simulating Android app connection...");
-console.log(`📞 User Phone Number: ${userPhoneNumber}`);
+console.log(`📞 Simulated User Phone Number: ${userPhoneNumber}`);
+console.log("💡 In real Android app, this would be the actual user's phone number");
 
 // Connect to your production server
 const socket = io("http://31.97.206.244:3000");
@@ -95,7 +89,11 @@ process.on('SIGINT', () => {
 
 console.log(`📱 Android client simulation running for ${userPhoneNumber}`);
 console.log('Press Ctrl+C to disconnect');
-console.log('\n📋 To test, send data to this phone number using:');
-console.log(`curl -X POST http://31.97.206.244:3000/api/incomingCall/number/${userPhoneNumber} \\`);
-console.log(`  -H "Content-Type: application/json" \\`);
-console.log(`  -d '{"callId": "123", "from": "+911234567890", "timestamp": "${new Date().toISOString()}"}'`);
+console.log('\n📋 To test this simulated Android client:');
+console.log('   1. Run: node test-api-production.js (will automatically test this client)');
+console.log('   2. Or send directly:');
+console.log(`      curl -X POST http://31.97.206.244:3000/api/incomingCall/number/${userPhoneNumber} \\`);
+console.log(`        -H "Content-Type: application/json" \\`);
+console.log(`        -d '{"callId": "123", "from": "+911234567890", "timestamp": "${new Date().toISOString()}"}'`);
+console.log('\n🔄 This client will automatically reconnect if disconnected');
+console.log('💡 In production, Android app would handle notifications in the UI');

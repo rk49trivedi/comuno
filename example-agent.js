@@ -1,35 +1,30 @@
-// example-agent.js - Production-ready agent with dynamic phone number
+// example-agent.js - Production-ready test agent
 const { io } = require("socket.io-client");
 
-// Get phone number and agent type from command line arguments
-const agentPhoneNumber = process.argv[2];
-const agentType = process.argv[3] || 'call_processor';
-
-if (!agentPhoneNumber) {
-    console.error("❌ Phone number is required!");
-    console.log("Usage: node example-agent.js +919876543210 [agent_type]");
-    console.log("Example: node example-agent.js +919876543210 call_processor");
-    console.log("Agent types: call_processor, notification_service, analytics_processor");
-    process.exit(1);
+// Generate a random test phone number for this agent instance
+function generateTestPhoneNumber() {
+    const countryCode = '+91';
+    const number = Math.floor(Math.random() * 9000000000) + 1000000000; // 10 digit number
+    return countryCode + number;
 }
 
-// Validate phone number format (basic validation)
-if (!agentPhoneNumber.match(/^\+[1-9]\d{1,14}$/)) {
-    console.error("❌ Invalid phone number format! Use international format like +919876543210");
-    process.exit(1);
-}
+// Get agent type from command line or use default
+const agentType = process.argv[2] || 'test_agent';
+const agentPhoneNumber = generateTestPhoneNumber();
+
+console.log('🤖 Starting Example Test Agent...');
+console.log(`📞 Generated phone number: ${agentPhoneNumber}`);
+console.log(`🏷️  Agent type: ${agentType}`);
 
 // Dynamic agent configuration
 const agentConfig = {
-    agentId: `${agentType}-${agentPhoneNumber.replace(/[^0-9]/g, '')}`,
+    agentId: `${agentType}-${Date.now()}`,
     agentNumber: agentPhoneNumber,
-    agentName: `${agentType.charAt(0).toUpperCase() + agentType.slice(1)} - ${agentPhoneNumber}`,
+    agentName: `Test ${agentType.charAt(0).toUpperCase() + agentType.slice(1)} Agent`,
     agentType: agentType
 };
 
 console.log(`🚀 Starting ${agentConfig.agentName}...`);
-console.log(`📞 Phone Number: ${agentConfig.agentNumber}`);
-console.log(`🏷️  Agent Type: ${agentConfig.agentType}`);
 
 const socket = io("http://31.97.206.244:3000");
 
@@ -123,4 +118,8 @@ process.on('SIGINT', () => {
 });
 
 console.log(`📡 Agent ${agentConfig.agentId} is ready to receive events`);
+console.log(`📞 This agent can receive notifications at: ${agentConfig.agentNumber}`);
 console.log('Press Ctrl+C to stop the agent');
+console.log('\n💡 To test this agent, run:');
+console.log(`   node test-api-production.js`);
+console.log(`   Or send directly: curl -X POST http://31.97.206.244:3000/api/incomingCall/number/${agentConfig.agentNumber} -H "Content-Type: application/json" -d '{"test": true}'`);

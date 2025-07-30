@@ -162,6 +162,20 @@ GET http://31.97.206.244:3000/api/agents/number/+919876543210
 
 ## Testing Your Integration
 
+### Quick Start Testing
+
+1. **Start all test services:**
+```bash
+node start-all-services.js
+```
+
+2. **Run API tests:**
+```bash
+node test-api-production.js
+```
+
+### Manual Testing
+
 You can test if your Android app is receiving notifications by sending a test call:
 
 ```bash
