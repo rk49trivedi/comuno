@@ -154,9 +154,43 @@ app.post('/api/:type/number/:agentNumber', (req, res) => {
     }
 
     const agentInfo = connectedAgents.get(agentId);
-    agentInfo.socket.emit(type, data);
 
-    // Also send to all database services for logging
+    // Extract phone numbers from the data
+    let extractedAgentPhone = null;
+    let extractedCustomerPhone = null;
+
+    // Extract agent phone number
+    if (data.agent_details && data.agent_details.agent_number) {
+        extractedAgentPhone = data.agent_details.agent_number;
+    } else if (data.agent_details && Array.isArray(data.agent_details) && data.agent_details.length > 0) {
+        extractedAgentPhone = data.agent_details[0].agent_number;
+    }
+
+    // Extract customer phone number
+    if (data.call_details && data.call_details.customer_number) {
+        extractedCustomerPhone = data.call_details.customer_number;
+    } else if (data.customer_details && data.customer_details.customer_number) {
+        extractedCustomerPhone = data.customer_details.customer_number;
+    } else if (data.from) {
+        extractedCustomerPhone = data.from;
+    }
+
+    // Send simplified data to Android/mobile clients
+    if (agentInfo.agentType === 'mobile_client' || agentInfo.agentType === 'android_client') {
+        const simplifiedData = {
+            type: type,
+            agentPhone: extractedAgentPhone || agentNumber,
+            customerPhone: extractedCustomerPhone,
+            timestamp: new Date().toISOString(),
+            live_event: data.live_event || data.call_details?.live_event || null
+        };
+        agentInfo.socket.emit(type, simplifiedData);
+    } else {
+        // Send full data to other types of agents
+        agentInfo.socket.emit(type, data);
+    }
+
+    // Also send to all database services for logging (full data)
     connectedAgents.forEach((dbAgentInfo, dbAgentId) => {
         if (dbAgentInfo.agentType === 'database_service') {
             dbAgentInfo.socket.emit(type, {
@@ -170,7 +204,9 @@ app.post('/api/:type/number/:agentNumber', (req, res) => {
         status: 'success',
         message: `${type} event sent to agent ${agentNumber}`,
         targetAgentNumber: agentNumber,
-        targetAgentId: agentId
+        targetAgentId: agentId,
+        agentPhone: agentNumber,
+        customerPhone: data.call_details?.customer_number || data.customer_details?.customer_number || data.from || null
     });
 });
 
