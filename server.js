@@ -1,60 +1,55 @@
-// server.js
-const express = require('express');
-const bodyParser = require('body-parser');
-const db = require('./db');  // Make sure db.js exists with your MySQL config
+// // server.js
+// const express = require('express');
+// const bodyParser = require('body-parser');
+// const http = require('http');
+// const { Server } = require('socket.io');
 
-const app = express();
-const port = 3000;
+// const app = express();
+// const server = http.createServer(app);
+// const io = new Server(server);  // Create Socket.IO server
 
-// Middleware to parse JSON request bodies
-app.use(bodyParser.json());
+// const port = 3000;
 
-// POST route for incomingCall, outgoingCall, callRecording
-app.post('/api/:type', (req, res) => {
-    const { type } = req.params;
+// // Middleware to parse JSON request bodies
+// app.use(bodyParser.json());
 
-    // Allowed event types
-    const validTypes = ['incomingCall', 'outgoingCall', 'callRecording'];
+// // Store socket connection
+// let connectedSocket = null;
 
-    // Validate type param
-    if (!validTypes.includes(type)) {
-        return res.status(400).json({
-            status: 'error',
-            message: 'Invalid event type'
-        });
-    }
+// // Handle socket connection
+// io.on('connection', (socket) => {
+//     console.log('📡 Client connected via socket');
 
-    const data = req.body;
+//     // Save reference to socket
+//     connectedSocket = socket;
 
-    // Insert data into MySQL
-    const query = 'INSERT INTO call_logs (type, data) VALUES (?, ?)';
-    db.query(query, [type, JSON.stringify(data)], (err, result) => {
-        if (err) {
-            console.error('Database Insert Error:', err.message);
-            return res.status(500).json({
-                status: 'error',
-                message: 'Database error'
-            });
-        }
+//     socket.on('disconnect', () => {
+//         console.log('❌ Client disconnected');
+//         connectedSocket = null;
+//     });
+// });
 
-        // Success response
-        res.json({
-            status: 'success',
-            message: `${type} event stored successfully`,
-            id: result.insertId
-        });
-    });
-});
+// // POST route for incomingCall, outgoingCall, callRecording
+// app.post('/api/:type', (req, res) => {
+//     const { type } = req.params;
+//     const validTypes = ['incomingCall', 'outgoingCall', 'callRecording'];
 
-// Start server
-app.listen(port, () => {
-    console.log(`🚀 Server running at http://localhost:${port}`);
-});
+//     if (!validTypes.includes(type)) {
+//         return res.status(400).json({ status: 'error', message: 'Invalid event type' });
+//     }
 
+//     const data = req.body;
 
-// CREATE TABLE call_logs (
-//     id INT AUTO_INCREMENT PRIMARY KEY,
-//     type VARCHAR(50),
-//     data JSON,
-//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-// );
+//     // Emit data through socket instead of saving in DB
+//     if (connectedSocket) {
+//         connectedSocket.emit(type, data);  // Send event named 'incomingCall', 'outgoingCall', etc.
+//         res.json({ status: 'success', message: `${type} event sent via socket` });
+//     } else {
+//         res.status(503).json({ status: 'error', message: 'No socket client connected' });
+//     }
+// });
+
+// // Start server
+// server.listen(port, () => {
+//     console.log(`🚀 Server running at http://localhost:${port}`);
+// });

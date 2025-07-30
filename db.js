@@ -2,9 +2,9 @@ const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
     host: 'localhost',
-    user: 'root',      // default in Laragon
-    password: '',      // usually empty in Laragon
-    database: 'comuno'
+    user: 'patient_app',      // default in Laragon
+    password: 'kGrJfsMCzX6mtM8B',      // usually empty in Laragon
+    database: 'patient_app'
 });
 
 connection.connect(err => {

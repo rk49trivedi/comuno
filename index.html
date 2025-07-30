@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Test</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+  <script>
+    const socket = io("http://31.97.206.244:3000");
+
+    socket.on("connect", () => {
+      console.log("✅ Connected to WebSocket server");
+    });
+
+    socket.on("incomingCall", (data) => {
+      console.log("📞 Incoming Call:", data);
+    });
+
+    socket.on("outgoingCall", (data) => {
+      console.log("📤 Outgoing Call:", data);
+    });
+
+    socket.on("callRecording", (data) => {
+      console.log("🎙️ Call Recording:", data);
+    });
+  </script>
+  <h1>Socket.IO Client Running</h1>
+</body>
+</html>
