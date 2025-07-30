@@ -119,14 +119,50 @@ app.post('/api/:type', (req, res) => {
     const data = req.body;
 
     if (connectedAgents.size > 0) {
+        // Extract phone numbers from the data for mobile clients
+        let extractedAgentPhone = null;
+        let extractedCustomerPhone = null;
+
+        // Extract agent phone number
+        if (data.agent_details && data.agent_details.agent_number) {
+            extractedAgentPhone = data.agent_details.agent_number;
+        } else if (data.agent_details && Array.isArray(data.agent_details) && data.agent_details.length > 0) {
+            extractedAgentPhone = data.agent_details[0].agent_number;
+        }
+
+        // Extract customer phone number
+        if (data.call_details && data.call_details.customer_number) {
+            extractedCustomerPhone = data.call_details.customer_number;
+        } else if (data.customer_details && data.customer_details.customer_number) {
+            extractedCustomerPhone = data.customer_details.customer_number;
+        } else if (data.from) {
+            extractedCustomerPhone = data.from;
+        }
+
         // Emit event to all connected agents
         connectedAgents.forEach((agentInfo, agentId) => {
-            agentInfo.socket.emit(type, data);
+            // Send simplified data to Android/mobile clients
+            if (agentInfo.agentType === 'mobile_client' || agentInfo.agentType === 'android_client') {
+                const simplifiedData = {
+                    type: type,
+                    agentPhone: extractedAgentPhone,
+                    customerPhone: extractedCustomerPhone,
+                    timestamp: new Date().toISOString(),
+                    live_event: data.live_event || data.call_details?.live_event || null
+                };
+                agentInfo.socket.emit(type, simplifiedData);
+            } else {
+                // Send full data to other types of agents (database services, etc.)
+                agentInfo.socket.emit(type, data);
+            }
         });
+
         return res.json({
             status: 'success',
             message: `${type} event sent to ${connectedAgents.size} agent(s)`,
-            connectedAgents: Array.from(connectedAgents.keys())
+            connectedAgents: Array.from(connectedAgents.keys()),
+            agentPhone: extractedAgentPhone,
+            customerPhone: extractedCustomerPhone
         });
     } else {
         return res.status(503).json({ status: 'error', message: 'No agents connected' });
@@ -381,6 +417,64 @@ app.get('/api/agents/:agentId', (req, res) => {
     });
 });
 
+// Android-specific API endpoints for minimal data
+app.post('/api/android/:type/number/:agentNumber', (req, res) => {
+    const { type, agentNumber } = req.params;
+    const validTypes = ['incomingCall', 'outgoingCall', 'callRecording'];
+
+    if (!validTypes.includes(type)) {
+        return res.status(400).json({ status: 'error', message: 'Invalid event type' });
+    }
+
+    const data = req.body;
+    const agentId = agentNumberToId.get(agentNumber);
+
+    if (!agentId) {
+        return res.status(404).json({
+            status: 'error',
+            message: `Agent with phone number ${agentNumber} not found or not connected`
+        });
+    }
+
+    const agentInfo = connectedAgents.get(agentId);
+
+    // Extract phone numbers from the data
+    let extractedAgentPhone = null;
+    let extractedCustomerPhone = null;
+
+    if (data.agent_details && data.agent_details.agent_number) {
+        extractedAgentPhone = data.agent_details.agent_number;
+    } else if (data.agent_details && Array.isArray(data.agent_details) && data.agent_details.length > 0) {
+        extractedAgentPhone = data.agent_details[0].agent_number;
+    }
+
+    if (data.call_details && data.call_details.customer_number) {
+        extractedCustomerPhone = data.call_details.customer_number;
+    } else if (data.customer_details && data.customer_details.customer_number) {
+        extractedCustomerPhone = data.customer_details.customer_number;
+    } else if (data.from) {
+        extractedCustomerPhone = data.from;
+    }
+
+    // Send only minimal data to Android client
+    const androidData = {
+        type: type,
+        agentPhone: extractedAgentPhone || agentNumber,
+        customerPhone: extractedCustomerPhone,
+        timestamp: new Date().toISOString(),
+        live_event: data.live_event || data.call_details?.live_event || null
+    };
+
+    agentInfo.socket.emit(type, androidData);
+
+    // Return minimal response
+    return res.json({
+        status: 'success',
+        agentPhone: extractedAgentPhone || agentNumber,
+        customerPhone: extractedCustomerPhone
+    });
+});
+
 // Start server
 server.listen(port, () => {
     console.log(`🚀 Server running at http://localhost:${port}`);
@@ -394,5 +488,6 @@ server.listen(port, () => {
     console.log(`   POST /api/:type/agent/:agentId - Send to agent by ID`);
     console.log(`   POST /api/:type/numbers - Send to multiple agents by phone numbers`);
     console.log(`   POST /api/:type/agents - Send to multiple agents by IDs`);
+    console.log(`   📱 POST /api/android/:type/number/:agentNumber - Android minimal data`);
     console.log(`📞 Primary method: Use phone numbers (agentNumber) for targeting agents`);
 });

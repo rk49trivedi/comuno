@@ -76,28 +76,64 @@ socket.on("registrationError", args -> {
 ### 4. Listen for Call Events
 
 ```java
-// Handle incoming call
+// Handle incoming call (simplified data format)
 socket.on("incomingCall", args -> {
-    JSONObject data = (JSONObject) args[0];
-    // Show notification or update UI
-    String callId = data.getString("callId");
-    String fromNumber = data.getString("from");
-    
-    // Display notification
-    showCallNotification("Incoming Call", fromNumber);
+    try {
+        JSONObject data = (JSONObject) args[0];
+
+        String agentPhone = data.getString("agentPhone");
+        String customerPhone = data.getString("customerPhone");
+        String liveEvent = data.getString("live_event");
+        String timestamp = data.getString("timestamp");
+
+        Log.d("Socket", "📞 Incoming call - Agent: " + agentPhone + ", Customer: " + customerPhone);
+
+        // Show notification to user
+        runOnUiThread(() -> {
+            showCallNotification("Incoming Call", agentPhone, customerPhone, liveEvent);
+        });
+
+    } catch (Exception e) {
+        Log.e("Socket", "Error parsing incoming call: " + e.getMessage());
+    }
 });
 
-// Handle outgoing call
+// Handle outgoing call (simplified data format)
 socket.on("outgoingCall", args -> {
-    JSONObject data = (JSONObject) args[0];
-    // Show notification or update UI
+    try {
+        JSONObject data = (JSONObject) args[0];
+
+        String agentPhone = data.getString("agentPhone");
+        String customerPhone = data.getString("customerPhone");
+        String liveEvent = data.getString("live_event");
+
+        // Show notification or update UI
+        runOnUiThread(() -> {
+            showCallNotification("Outgoing Call", agentPhone, customerPhone, liveEvent);
+        });
+
+    } catch (Exception e) {
+        Log.e("Socket", "Error parsing outgoing call: " + e.getMessage());
+    }
 });
 
-// Handle call recording
+// Handle call recording (simplified data format)
 socket.on("callRecording", args -> {
-    JSONObject data = (JSONObject) args[0];
-    // Handle recording data
-    String recordingUrl = data.getString("recordingUrl");
+    try {
+        JSONObject data = (JSONObject) args[0];
+
+        String agentPhone = data.getString("agentPhone");
+        String customerPhone = data.getString("customerPhone");
+        String liveEvent = data.getString("live_event");
+
+        // Handle recording data
+        runOnUiThread(() -> {
+            handleCallRecording(agentPhone, customerPhone, liveEvent);
+        });
+
+    } catch (Exception e) {
+        Log.e("Socket", "Error parsing call recording: " + e.getMessage());
+    }
 });
 ```
 
@@ -191,36 +227,46 @@ curl -X POST http://31.97.206.244:3000/api/incomingCall/number/+919876543210 \
 3. The WebSocket connection must remain open to receive notifications
 4. If connection is lost, your app should automatically reconnect
 
-## Example Data Formats
+## Example Data Formats (Simplified for Android)
+
+Android apps receive simplified data format with only essential information:
 
 ### Incoming Call
 ```json
 {
-  "callId": "call-123",
-  "from": "+911234567890",
-  "to": "+919876543210",
-  "timestamp": "2023-06-15T10:30:00Z",
-  "status": "ringing"
+  "type": "incomingCall",
+  "agentPhone": "+919924936750",
+  "customerPhone": "+919662682525",
+  "live_event": "evt_completed_with_recording",
+  "timestamp": "2025-07-30T08:59:16.000Z"
 }
 ```
 
 ### Outgoing Call
 ```json
 {
-  "callId": "call-456",
-  "from": "+919876543210",
-  "to": "+911234567890",
-  "timestamp": "2023-06-15T11:30:00Z",
-  "status": "dialing"
+  "type": "outgoingCall",
+  "agentPhone": "+919924936750",
+  "customerPhone": "+919662682525",
+  "live_event": "evt_completed_with_recording",
+  "timestamp": "2025-07-30T09:00:33.000Z"
 }
 ```
 
 ### Call Recording
 ```json
 {
-  "callId": "call-123",
-  "recordingUrl": "https://example.com/recordings/call-123.mp3",
-  "duration": 120,
-  "timestamp": "2023-06-15T10:35:00Z"
+  "type": "callRecording",
+  "agentPhone": "+919924936750",
+  "customerPhone": "+919662682525",
+  "live_event": "evt_completed_with_recording",
+  "timestamp": "2025-07-30T09:00:33.000Z"
 }
 ```
+
+### Key Fields for Android:
+- **`agentPhone`**: The agent's phone number who handled the call
+- **`customerPhone`**: The customer's phone number
+- **`live_event`**: Call status (usually "evt_completed_with_recording" for completed calls)
+- **`timestamp`**: When the event occurred
+- **`type`**: Event type (incomingCall, outgoingCall, callRecording)

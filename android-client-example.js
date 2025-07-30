@@ -28,7 +28,7 @@ socket.on("connect", () => {
         agentId: `android-${userPhoneNumber.replace(/[^0-9]/g, '')}`,
         agentNumber: userPhoneNumber,  // User's actual phone number
         agentName: `Android User ${userPhoneNumber}`,
-        agentType: "mobile_client"
+        agentType: "mobile_client"  // This ensures simplified data format
     };
     
     console.log(`📞 Registering with phone number: ${userPhoneNumber}`);
@@ -62,17 +62,29 @@ socket.on("agentDisconnected", (data) => {
 
 // Handle call events (this is what Android app should implement)
 socket.on("incomingCall", (data) => {
-    console.log("📞 INCOMING CALL received:", data);
+    console.log("📞 INCOMING CALL received (simplified data):", data);
+    console.log(`   👤 Agent Phone: ${data.agentPhone}`);
+    console.log(`   📱 Customer Phone: ${data.customerPhone}`);
+    console.log(`   🏷️  Live Event: ${data.live_event}`);
+    console.log(`   ⏰ Timestamp: ${data.timestamp}`);
     // Android app should show notification or update UI here
 });
 
 socket.on("outgoingCall", (data) => {
-    console.log("📞 OUTGOING CALL received:", data);
+    console.log("📞 OUTGOING CALL received (simplified data):", data);
+    console.log(`   👤 Agent Phone: ${data.agentPhone}`);
+    console.log(`   📱 Customer Phone: ${data.customerPhone}`);
+    console.log(`   🏷️  Live Event: ${data.live_event}`);
+    console.log(`   ⏰ Timestamp: ${data.timestamp}`);
     // Android app should show notification or update UI here
 });
 
 socket.on("callRecording", (data) => {
-    console.log("🎵 CALL RECORDING received:", data);
+    console.log("🎵 CALL RECORDING received (simplified data):", data);
+    console.log(`   👤 Agent Phone: ${data.agentPhone}`);
+    console.log(`   📱 Customer Phone: ${data.customerPhone}`);
+    console.log(`   🏷️  Live Event: ${data.live_event}`);
+    console.log(`   ⏰ Timestamp: ${data.timestamp}`);
     // Android app should handle recording data here
 });
 
